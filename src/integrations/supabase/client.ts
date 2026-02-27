@@ -19,7 +19,16 @@ class LocalSupabaseAuth {
 
   async signUp({ email, password, options }: any) {
     await delay(500);
-    const user = { id: generateId(), email, user_metadata: options?.data || {} };
+
+    const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+    if (users.find((u: any) => u.email === email)) {
+      return { data: null, error: { message: "User already exists with this email" } };
+    }
+
+    const user = { id: generateId(), email, user_metadata: options?.data || {}, password };
+    users.push(user);
+    localStorage.setItem('mock_users', JSON.stringify(users));
+
     const session = { access_token: 'mock_token', user };
     localStorage.setItem('mock_supabase_session', JSON.stringify(session));
 
@@ -37,10 +46,16 @@ class LocalSupabaseAuth {
     return { data: { user, session }, error: null };
   }
 
-  async signInWithPassword({ email }: any) {
+  async signInWithPassword({ email, password }: any) {
     await delay(500);
-    // Mock login accepts any password
-    const user = { id: generateId(), email };
+
+    const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+    const user = users.find((u: any) => u.email === email && u.password === password);
+
+    if (!user) {
+      return { data: null, error: { message: "Invalid email or password. Please sign up first." } };
+    }
+
     const session = { access_token: 'mock_token', user };
     localStorage.setItem('mock_supabase_session', JSON.stringify(session));
     this.notifyListeners('SIGNED_IN', session);
